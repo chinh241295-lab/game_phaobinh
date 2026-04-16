@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>80 Năm Truyền Thống Pháo Binh</title>
+    <style>
+        :root { --army-green: #2e7d32; --gold: #fbc02d; --dark: #1b5e20; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #eceff1; margin: 0; display: flex; justify-content: center; }
+        #app { width: 100%; max-width: 500px; background: white; min-height: 100vh; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        header { background: var(--army-green); color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 1.2rem; }
+        .container { padding: 20px; }
+        .hidden { display: none; }
+        img.q-img { width: 100%; border-radius: 8px; margin-bottom: 15px; border: 2px solid #ddd; }
+        .btn { display: block; width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 10px; font-size: 16px; cursor: pointer; transition: 0.2s; background: #f5f5f5; text-align: left; }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background: var(--army-green); color: white; text-align: center; font-weight: bold; }
+        .correct { background: #c8e6c9 !important; border: 2px solid #4caf50; }
+        .wrong { background: #ffcdd2 !important; border: 2px solid #f44336; }
+        #timer { float: right; color: var(--gold); }
+        .exp-box { background: #fffde7; padding: 15px; border-left: 5px solid var(--gold); margin-top: 15px; line-height: 1.6; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 10px; border: 1px solid #ddd; text-align: center; }
+        th { background: #f0f0f0; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <header>HÀO KHÍ PHÁO BINH <span id="timer">00:00</span></header>
+    
+    <div class="container" id="screen-start">
+        <h2 style="text-align: center; color: var(--army-green);">KỶ NIỆM 80 NĂM<br>BINH CHỦNG PHÁO BINH</h2>
+        <p style="text-align: center;">Vượt qua 30 câu hỏi thử thách để ghi danh vào bảng vàng.</p>
+        <button class="btn btn-primary" onclick="startGame()">BẮT ĐẦU NGAY</button>
+        <div id="leaderboard">
+            <h3>Top 10 Lượt Chơi Tốt Nhất</h3>
+            <table id="score-table">
+                <thead><tr><th>Hạng</th><th>Điểm</th><th>Thời gian</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="container hidden" id="screen-quiz">
+        <div id="progress" style="margin-bottom: 10px; font-weight: bold;">Câu: 1/30</div>
+        <img id="q-image" class="q-img" src="" alt="Hình ảnh câu hỏi">
+        <div id="q-text" style="font-size: 18px; font-weight: bold; margin-bottom: 20px;"></div>
+        <div id="options"></div>
+    </div>
+
+    <div class="container hidden" id="screen-result">
+        <h2 id="result-title"></h2>
+        <div id="exp-area" class="exp-box"></div>
+        <button class="btn btn-primary" id="btn-next" onclick="nextQuestion()">TIẾP TỤC</button>
+    </div>
+
+    <div class="container hidden" id="screen-end">
+        <h2 style="text-align: center;">HOÀN THÀNH THỬ THÁCH!</h2>
+        <div id="final-stats" style="text-align: center; font-size: 20px; margin: 20px 0;"></div>
+        <button class="btn btn-primary" onclick="location.reload()">CHƠI LẠI</button>
+    </div>
+</div>
+
+<script>
+    // Dữ liệu trích xuất từ file của bạn
+    const fullDatabase = [
+        { id: 1, q: "Ngày truyền thống của Bộ đội Pháo binh là ngày nào?", a: "B", options: {A: "19/12/1946", B: "29/6/1946", C: "2/9/1945", D: "7/5/1954"}, exp: "Ngày 29/6/1946, Đoàn Pháo binh Thủ đô được thành lập tại trại Vệ quốc đoàn Trung ương, đánh dấu sự ra đời của Pháo binh QĐND VN." },
+        { id: 2, q: "Đơn vị pháo binh đầu tiên được thành lập tên là gì?", a: "A", options: {A: "Đoàn Pháo binh Thủ đô", B: "Lữ đoàn 164", C: "Trung đoàn 40", D: "Đoàn 75"}, exp: "Đoàn Pháo binh Thủ đô gồm 3 trung đội: Pháo đài Láng, Xuân Tảo, Xuân Canh." },
+        { id: 3, q: "8 chữ vàng truyền thống của Bộ đội Pháo binh là gì?", a: "C", options: {A: "Đoàn kết, tự lực, tự cường", B: "Trung thành vô hạn, quyết chiến quyết thắng", C: "Chân đồng vai sắt, đánh giỏi bắn trúng", D: "Mưu trí sáng tạo, dũng cảm kiên cường"}, exp: "Tám chữ vàng 'Chân đồng vai sắt, đánh giỏi bắn trúng' được Bác Hồ gửi thư khen tặng vào ngày 13/4/1967." },
+        // ... (Bạn hãy thêm các câu tiếp theo vào đây theo cấu trúc này)
+    ];
+
+    let gameData = [];
+    let currentIdx = 0;
+    let score = 0;
+    let timer = 0;
+    let interval;
+
+    const sndWin = new Audio('https://assets.mixkit.co/active_storage/sfx/2550/2550-preview.mp3'); // Tiếng kèn/chuông
+    const sndLoss = new Audio('https://assets.mixkit.co/active_storage/sfx/2544/2544-preview.mp3'); // Tiếng nổ nhẹ
+
+    function startGame() {
+        gameData = [...fullDatabase].sort(() => Math.random() - 0.5).slice(0, 30);
+        currentIdx = 0; score = 0; timer = 0;
+        document.getElementById('screen-start').classList.add('hidden');
+        document.getElementById('screen-quiz').classList.remove('hidden');
+        interval = setInterval(() => {
+            timer++;
+            let m = Math.floor(timer/60).toString().padStart(2, '0');
+            let s = (timer%60).toString().padStart(2, '0');
+            document.getElementById('timer').innerText = `${m}:${s}`;
+        }, 1000);
+        showQuestion();
+    }
+
+    function showQuestion() {
+        const q = gameData[currentIdx];
+        document.getElementById('progress').innerText = `Câu: ${currentIdx + 1}/30`;
+        document.getElementById('q-image').src = `Câu ${q.id}.jpg`;
+        document.getElementById('q-text').innerText = q.q;
+        const optArea = document.getElementById('options');
+        optArea.innerHTML = '';
+        for(let key in q.options) {
+            const b = document.createElement('button');
+            b.className = 'btn';
+            b.innerText = `${key}. ${q.options[key]}`;
+            b.onclick = () => check(key);
+            optArea.appendChild(b);
+        }
+    }
+
+    function check(choice) {
+        const q = gameData[currentIdx];
+        const isCorrect = choice === q.a;
+        if(isCorrect) { score++; sndWin.play(); } else { sndLoss.play(); }
+        
+        document.getElementById('screen-quiz').classList.add('hidden');
+        document.getElementById('screen-result').classList.remove('hidden');
+        document.getElementById('result-title').innerText = isCorrect ? "CHÍNH XÁC!" : "SAI RỒI!";
+        document.getElementById('result-title').style.color = isCorrect ? "green" : "red";
+        document.getElementById('exp-area').innerHTML = `<b>Đáp án: ${q.a}</b><br>${q.exp}`;
+    }
+
+    function nextQuestion() {
+        currentIdx++;
+        if(currentIdx < 30) {
+            document.getElementById('screen-result').classList.add('hidden');
+            document.getElementById('screen-quiz').classList.remove('hidden');
+            showQuestion();
+        } else {
+            endGame();
+        }
+    }
+
+    function endGame() {
+        clearInterval(interval);
+        document.getElementById('screen-result').classList.add('hidden');
+        document.getElementById('screen-end').classList.remove('hidden');
+        document.getElementById('final-stats').innerHTML = `Điểm: ${score}/30<br>Thời gian: ${document.getElementById('timer').innerText}`;
+        saveScore(score, timer);
+    }
+
+    function saveScore(s, t) {
+        let h = JSON.parse(localStorage.getItem('pb80_scores')) || [];
+        h.push({s, t});
+        h.sort((a,b) => b.s - a.s || a.t - b.t);
+        localStorage.setItem('pb80_scores', JSON.stringify(h.slice(0, 10)));
+    }
+
+    function displayScores() {
+        const h = JSON.parse(localStorage.getItem('pb80_scores')) || [];
+        document.querySelector('#score-table tbody').innerHTML = h.map((i, n) => 
+            `<tr><td>${n+1}</td><td>${i.s}/30</td><td>${i.t}s</td></tr>`).join('');
+    }
+    window.onload = displayScores;
+</script>
+</body>
+</html>
